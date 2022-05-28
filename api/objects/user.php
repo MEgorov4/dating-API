@@ -1,14 +1,10 @@
 <?php
 
-// объект 'user'
 class User
 {
-
-	// подключение к БД таблице "users"
 	private $conn;
 	private $table_name = "users";
 
-	// свойства объекта
 	public $id;
 	public $name;
 	public $secondname;
@@ -17,18 +13,14 @@ class User
 	public $gender;
 	public $location;
 
-	// конструктор класса User
 	public function __construct($db)
 	{
 		$this->conn = $db;
 	}
 
-	// Создание нового пользователя
 	function create()
 	{
-
-		// Вставляем запрос
-		$query = "INSERT INTO " . $this->table_name ." 
+		$query = "INSERT INTO " . $this->table_name . " 
 		SET
 			password = :password,
 			login = :login,
@@ -37,10 +29,8 @@ class User
 			gender = :gender,
 			location = :location";
 
-		// подготовка запроса
 		$stmt = $this->conn->prepare($query);
 
-		// инъекция
 		$this->name = htmlspecialchars(strip_tags($this->name));
 		$this->secondname = htmlspecialchars(strip_tags($this->secondname));
 		$this->login = htmlspecialchars(strip_tags($this->login));
@@ -48,20 +38,15 @@ class User
 		$this->gender = htmlspecialchars(strip_tags($this->gender));
 		$this->location = htmlspecialchars(strip_tags($this->location));
 
-		// привязываем значения
 		$stmt->bindParam(':login', $this->login);
 		$stmt->bindParam(':name', $this->name);
 		$stmt->bindParam(':secondname', $this->secondname);
 		$stmt->bindParam(':gender', $this->gender);
 		$stmt->bindParam(':location', $this->location);
 
-		// для защиты пароля
-		// хешируем пароль перед сохранением в базу данных
 		$password_hash = password_hash($this->password, PASSWORD_BCRYPT);
 		$stmt->bindParam(':password', $password_hash);
 
-		// Выполняем запрос
-		// Если выполнение успешно, то информация о пользователе будет сохранена в базе данных
 		if ($stmt->execute()) {
 			return true;
 		}
@@ -69,5 +54,78 @@ class User
 		return false;
 	}
 
-	// здесь будет метод emailExists()
+	function loginExists()
+	{
+		$query = "SELECT id, name, secondName, password
+            FROM " . $this->table_name . "
+            WHERE login = ?
+            LIMIT 0,1";
+
+		$stmt = $this->conn->prepare($query);
+		$this->login = htmlspecialchars(strip_tags($this->login));
+
+		$stmt->bindParam(1, $this->login);
+
+		$stmt->execute();
+
+		$num = $stmt->rowCount();
+
+		if ($num > 0) {
+
+			$row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+			$this->id = $row['id'];
+			$this->name = $row['name'];
+			$this->secondname = $row['secondName'];
+			$this->password = $row['password'];
+
+			return true;
+		}
+
+		return false;
+	}
+
+	public function update()
+	{
+
+		$password_set = !empty($this->password) ? ", password = :password" : "";
+
+		// если не введен пароль - не обновлять пароль
+		$query = "UPDATE " . $this->table_name . "
+		SET
+                name = :name,
+                secondName = :secondname,
+                gender = :gender,
+                location = :location,
+                login = :login
+                {$password_set} WHERE id = :id";
+
+		$stmt = $this->conn->prepare($query);
+
+		$this->name = htmlspecialchars(strip_tags($this->name));
+		$this->secondname = htmlspecialchars(strip_tags($this->secondname));
+		$this->login = htmlspecialchars(strip_tags($this->login));
+		$this->login = htmlspecialchars(strip_tags($this->gender));
+		$this->login = htmlspecialchars(strip_tags($this->location));
+
+		$stmt->bindParam(':name', $this->name);
+		$stmt->bindParam(':secondname', $this->secondname);
+		$stmt->bindParam(':login', $this->login);
+		$stmt->bindParam(':gender', $this->gender);
+		$stmt->bindParam(':location', $this->location);
+
+		if (!empty($this->password)) {
+			$this->password = htmlspecialchars(strip_tags($this->password));
+			$password_hash = password_hash($this->password, PASSWORD_BCRYPT);
+			$stmt->bindParam(':password', $password_hash);
+		}
+
+		$stmt->bindParam(':id', $this->id);
+
+		if ($stmt->execute()) {
+			return true;
+		}
+
+		return false;
+	}
 }
