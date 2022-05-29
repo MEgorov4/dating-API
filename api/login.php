@@ -25,7 +25,6 @@ include_once 'libs/php-jwt-main/src/ExpiredException.php';
 include_once 'libs/php-jwt-main/src/SignatureInvalidException.php';
 include_once 'libs/php-jwt-main/src/JWT.php';
 use \Firebase\JWT\JWT;
-
 if ($login_exists && password_verify($data->password, $user->password)) {
 
 	$token = [
